@@ -59,7 +59,7 @@ func main() {
 		},
 	}
 
-	shop.customers = make(chan Customer, 50)
+	shop.customers = make(chan Customer, 500)
 	shop.done.Add(1)
 
 	go func(closed chan<- bool) {
@@ -74,11 +74,19 @@ func main() {
 				fmt.Println("Door is closed")
 				return
 			case customers <- customerSpawner():
+				fmt.Println("Customer enter shop!")
+			default:
+				time.Sleep(time.Second)
+				fmt.Println("Shop is full!")
 			}
 		}
 	}(shop.customers, closed)
 
-	go shopping(shop.tills, shop.customers)
+	doneShopping := make(chan Customer, 500)
+
+	go shopping(shop.customers, doneShopping)
+
+	go goingToLine(shop.tills, doneShopping)
 
 	go tillArea(&shop.done, shop.tills, closed)
 	shop.done.Wait()
@@ -99,27 +107,45 @@ func customerSpawner() (customer Customer) {
 	return customer
 }
 
-func shopping(tills []*Till, customersInShop chan Customer) {
+func shopping(customersEnterShop <-chan Customer, lineArea chan Customer) {
+	/**
+	 * Customer in the shop will take his time shopping
+	 * and then he will go to check for a line
+	 */
 	var customer Customer
 
 	for {
 		select {
-		case customer = <-customersInShop:
+		case customer = <-customersEnterShop:
 			time.Sleep(time.Duration(customer.shoppingDuration) * time.Millisecond)
+			go toLine(customer, lineArea)
 		case <-time.After(time.Second):
-			//No more customers in shop
+			fmt.Println("No customers in shop")
 			return
 		}
+	}
+}
 
+func toLine(customer Customer, lineArea chan<- Customer) {
+	select {
+	case lineArea <- customer:
+	case <-time.After(time.Second):
+		fmt.Println("Some error")
+		return
+	}
+}
+
+func goingToLine(tills []*Till, customersInShop <-chan Customer) {
+	for {
 		select {
-		case tills[0].line <- customer:
-		case tills[1].line <- customer:
-		case tills[2].line <- customer:
-		case tills[3].line <- customer:
-		case tills[4].line <- customer:
-		case tills[5].line <- customer:
-		case <-time.After(3 * time.Second):
-			//All tills are blocked or closed
+		case tills[0].line <- <-customersInShop:
+		case tills[1].line <- <-customersInShop:
+		case tills[2].line <- <-customersInShop:
+		case tills[3].line <- <-customersInShop:
+		case tills[4].line <- <-customersInShop:
+		case tills[5].line <- <-customersInShop:
+		case <-time.After(time.Second):
+			fmt.Println("All tills are closed!")
 			return
 		}
 	}
