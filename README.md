@@ -27,9 +27,23 @@ This is a simple simulation of a supermarket with tills, and an opening time and
 + Only one customer as the time would come through the shop at a time then the shop would not make as much money.
 + If the tills would not be able to deal share the load of customers equally then the flow would be in balanced and one till might be empty while another would be over full, and it would slow the execution time down, and lead to less money ( and potentially angry customers )
 
-### Address race conditions
+### Address race conditions / solutions
 
-+ If  
++ The tills are used in many different routines, so when a routine needs to read or write to the till then it is a good idea to use Mutual Exclusion to avoid race conditions.
 
-## A bank
++ I am using channels a lot in this program and the channels in go are avoiding race conditions when sending customers from one place to another, by copying the customer instead of pointing to it, when they are enqueuing/dequeuing the channel, and for the channel itself they are using mutual exclusion to avoid race conditions.
+
+* Later when sharing the data from the tills to the shop global account then a race conditions could also appear. 
+
+### Address deadlocks and starvation. (and solutions)
+
+* The shop is only open for a specific duration and therefore I am using something in go called a "wait group" which is a thread safe conditional variable which can get _n_ workers assigned to them. I am assigning the tills and when the tills are closed then they will let the "wait group" know that they are done and when all tills are done then the wait group will let the program continue. (If a till is never marked as done then the wait group will create a deadlock)
+
+* Also there is an aspect where customers are flowing constantly into the shop, during the opening time, So I made my own conditional variable, which is either 0 or 1. 
+    + When the shop has been open for the full interval between the opening time and the closing time, a channel will be marked as closed. 
+    + This channel will be looked at at the customer spawner and when the channel is closed then the spawner will stop spawning customers.
+    + In the tills they will each check if they have customers in the line, and 
+        + if there is no customers in the line (starvation) then they will check if this channel is closed, and 
+        + if the channel is closed then they will close their line and return their functions. 
+        + _(Comments can be found in the code)_
 
