@@ -29,6 +29,10 @@ type Shop struct {
 	funds                 int
 }
 
+/**
+ * This function will create a shop and all the necesary
+ * channels and so on. it is FactoryStyle
+ **/
 func CreateAndOpenShop(
 	name string,
 	opening int,
@@ -66,29 +70,28 @@ func CreateAndOpenShop(
 	return shop
 }
 
-func (self Shop) Open(tills int, funds int) {
-}
-
-/*
- * GROCERIES
- */
 type Grocery struct {
 	price int
 }
 
+/**
+ * This function will create the groceries that a
+ * customer will use.
+ **/
 func CreateGrocery() (grocery Grocery) {
 	grocery.price = rand.Intn(100-20) + 20
 	return grocery
 }
 
-/*
- * CUSTOMERS
- */
 type Customer struct {
 	shoppingDuration time.Duration
 	groceries        []Grocery
 }
 
+/**
+ * This function is used to generate a unique customer
+ * with some groceries and a shoppin duration.
+ **/
 func CreateCustomer() (customer Customer) {
 	customer.shoppingDuration = minutes(rand.Intn(25-5) + 5)
 
@@ -99,7 +102,11 @@ func CreateCustomer() (customer Customer) {
 	return customer
 }
 
-func (self Customer) getTotal() int {
+/**
+ * This method will get the total amount that a customer has
+ * to pay for his groceries.
+ **/
+func (self *Customer) getTotal() int {
 	var total int
 	for _, grocery := range self.groceries {
 		total += grocery.price
